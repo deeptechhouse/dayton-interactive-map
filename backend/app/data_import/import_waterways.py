@@ -1,4 +1,9 @@
-"""Import waterways from Chicago Open Data (Socrata GeoJSON API)."""
+"""Import waterways from city open data portals or USGS NHD.
+
+Supports multiple source types:
+- Socrata GeoJSON API (Chicago)
+- ArcGIS REST MapServer (USGS NHD for Dayton)
+"""
 
 import json
 import uuid
@@ -6,13 +11,19 @@ from pathlib import Path
 
 from shapely.geometry import shape, mapping
 
-from app.data_import.base_importer import BaseImporter
+from app.data_import.arcgis_rest_importer import ArcGISRestImporter
 
 
-class WaterwaysImporter(BaseImporter):
+class WaterwaysImporter(ArcGISRestImporter):
     layer_name = "waterways"
 
     def download(self) -> Path:
+        # Use ArcGIS REST pagination if source type is arcgis_rest
+        source_type = self._config.get("type", "")
+        if source_type == "arcgis_rest":
+            return ArcGISRestImporter.download(self)
+
+        # Fall back to direct GeoJSON download
         cached = self._load_json_cache()
         if cached:
             return self._cache_path()
@@ -41,8 +52,21 @@ class WaterwaysImporter(BaseImporter):
                 continue
 
             geom_str = json.dumps(mapping(geom))
-            name = props.get("name", "") or props.get("gnis_name", "") or None
-            waterway_type = props.get("waterway_type", "") or props.get("ftype", "") or None
+            # Chicago: name, waterway_type
+            # USGS NHD: GNIS_Name, FType, FCode
+            name = (
+                props.get("name", "")
+                or props.get("gnis_name", "")
+                or props.get("GNIS_Name", "")
+                or props.get("gnis_nm", "")
+                or None
+            )
+            waterway_type = (
+                props.get("waterway_type", "")
+                or props.get("ftype", "")
+                or props.get("FType", "")
+                or None
+            )
 
             records.append({
                 "id": str(uuid.uuid4()),

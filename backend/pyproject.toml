@@ -1,5 +1,12 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
 [project]
-name = "interactive-city-map"
+name = "dayton-interactive-map"
 version = "0.1.0"
 description = "Multi-layer interactive city map with historical overlays and building-level interactivity"
 requires-python = ">=3.10"

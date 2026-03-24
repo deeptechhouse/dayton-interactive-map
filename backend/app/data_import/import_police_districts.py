@@ -64,11 +64,10 @@ class PoliceDistrictsImporter(ArcGISRestImporter):
     def load(self, records: list[dict]) -> int:
         if not records:
             return 0
-        self._truncate_table("police_districts")
         conn = self._get_connection()
         try:
             cur = conn.cursor()
-            # Create table if not exists
+            # Create table if not exists (before truncate)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS police_districts (
                     id UUID PRIMARY KEY,
@@ -78,6 +77,9 @@ class PoliceDistrictsImporter(ArcGISRestImporter):
                     geom GEOMETRY(MultiPolygon, 4326)
                 )
             """)
+            conn.commit()
+            cur.execute("DELETE FROM police_districts WHERE city_id = %s", (self._city_id,))
+            conn.commit()
             sql = """
                 INSERT INTO police_districts (id, city_id, district, district_id, geom)
                 VALUES (%s, %s, %s, %s,
