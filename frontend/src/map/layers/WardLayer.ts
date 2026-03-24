@@ -9,9 +9,23 @@ const SOURCE_ID = 'neighborhoods-source';
  * Neighborhood layer for Dayton.
  *
  * Loads boundaries from Martin vector tiles (wards table in PostGIS)
- * rather than embedded GeoJSON. Colors assigned by feature index
- * cycling through the NEIGHBORHOOD_PALETTE.
+ * rather than embedded GeoJSON. Colors cycle through the palette
+ * using a step expression on feature ID.
  */
+
+function neighborhoodColorExpr(): unknown {
+  // Build a step expression that cycles colors by feature id
+  // step(input, default, stop1, output1, stop2, output2, ...)
+  const stops: (number | string)[] = [];
+  for (let i = 0; i < NEIGHBORHOOD_PALETTE.length; i++) {
+    stops.push(i + 1, NEIGHBORHOOD_PALETTE[i]);
+  }
+  return ['match',
+    ['%', ['coalesce', ['to-number', ['id']], 1], NEIGHBORHOOD_PALETTE.length],
+    ...stops,
+    '#888888',
+  ];
+}
 
 export function addWardLayer(map: maplibregl.Map, config: LayerConfig): void {
   if (!map.getSource(SOURCE_ID)) {
@@ -20,14 +34,24 @@ export function addWardLayer(map: maplibregl.Map, config: LayerConfig): void {
       tiles: [martinTileUrl('wards')],
       minzoom: 0,
       maxzoom: 16,
+      promoteId: 'name',
     });
   }
 
-  // Color expression: cycle through palette by OBJECTID or row number
+  // Use a simpler color approach — interpolate hue by feature id
   const colorExpr: unknown = [
-    'at',
-    ['%', ['coalesce', ['get', 'ward_number'], ['id'], 0], NEIGHBORHOOD_PALETTE.length],
-    ['literal', NEIGHBORHOOD_PALETTE],
+    'interpolate', ['linear'],
+    ['%', ['coalesce', ['to-number', ['id']], 0], 100],
+    0, '#ef4444',
+    10, '#f97316',
+    20, '#eab308',
+    30, '#22c55e',
+    40, '#14b8a6',
+    50, '#3b82f6',
+    60, '#8b5cf6',
+    70, '#ec4899',
+    80, '#f43f5e',
+    90, '#06b6d4',
   ];
 
   map.addLayer({

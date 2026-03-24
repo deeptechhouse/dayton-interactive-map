@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { layers as protomapsLayers, namedTheme } from 'protomaps-themes-base';
+// PMTiles protocol still needed for Sanborn overlay tiles
 import { Protocol } from 'pmtiles';
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../utils/geoUtils';
@@ -78,23 +78,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({ layers, onMapReady, 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const basemapStyle: maplibregl.StyleSpecification = {
-      version: 8,
-      glyphs: 'https://cdn.protomaps.com/fonts/pbf/{fontstack}/{range}.pbf',
-      sources: {
-        protomaps: {
-          type: 'vector',
-          url: 'pmtiles://https://build.protomaps.com/20250313.pmtiles',
-          attribution:
-            '<a href="https://protomaps.com">Protomaps</a> | <a href="https://openstreetmap.org">OSM</a>',
-        },
-      },
-      layers: protomapsLayers('protomaps', namedTheme('dark')),
-    };
+    // Use OpenFreeMap dark basemap (free, no key required, OSM data)
+    const basemapStyleUrl = 'https://tiles.openfreemap.org/styles/dark';
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: basemapStyle,
+      style: basemapStyleUrl,
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       minZoom: 3,
@@ -111,6 +100,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({ layers, onMapReady, 
       setMapLoaded(true);
       setMapInstance(map);
       onMapReady?.(map);
+    });
+
+    // Suppress non-fatal style errors (projection compat, missing sprites)
+    map.on('error', (e) => {
+      if (e.error?.message?.includes('projection') || e.error?.message?.includes('image')) return;
+      console.warn('Map error:', e.error?.message);
     });
 
     mapRef.current = map;
