@@ -27,7 +27,7 @@ export function addPOILayer(map: maplibregl.Map, config: LayerConfig): void {
     type: 'circle',
     source: SOURCE_ID,
     'source-layer': 'pois',
-    minzoom: 14,
+    minzoom: 11,
     layout: {
       visibility: config.visible ? 'visible' : 'none',
     },
@@ -37,7 +37,8 @@ export function addPOILayer(map: maplibregl.Map, config: LayerConfig): void {
         'interpolate',
         ['linear'],
         ['zoom'],
-        14, 4,
+        11, 3,
+        14, 5,
         18, 8,
       ],
       'circle-stroke-color': '#ffffff',
