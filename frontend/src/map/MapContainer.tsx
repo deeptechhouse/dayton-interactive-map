@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-// PMTiles protocol still needed for Sanborn overlay tiles
+import { layers as protomapsLayers, namedTheme } from 'protomaps-themes-base';
 import { Protocol } from 'pmtiles';
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../utils/geoUtils';
@@ -78,12 +78,23 @@ export const MapContainer: React.FC<MapContainerProps> = ({ layers, onMapReady, 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    // Use OpenFreeMap dark basemap (free, no key required, OSM data)
-    const basemapStyleUrl = 'https://tiles.openfreemap.org/styles/dark';
+    const basemapStyle: maplibregl.StyleSpecification = {
+      version: 8,
+      glyphs: 'https://cdn.protomaps.com/fonts/pbf/{fontstack}/{range}.pbf',
+      sources: {
+        protomaps: {
+          type: 'vector',
+          url: 'pmtiles://https://build.protomaps.com/20260324.pmtiles',
+          attribution:
+            '<a href="https://protomaps.com">Protomaps</a> | <a href="https://openstreetmap.org">OSM</a>',
+        },
+      },
+      layers: protomapsLayers('protomaps', namedTheme('dark')),
+    };
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: basemapStyleUrl,
+      style: basemapStyle,
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       minZoom: 3,
