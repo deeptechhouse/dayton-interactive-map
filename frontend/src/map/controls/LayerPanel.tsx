@@ -24,7 +24,6 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({ layerControls }) => {
     'zoning',
     'poi',
     'government',
-    'safety',
     'historical',
     'parks',
   ];
@@ -56,7 +55,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({ layerControls }) => {
       <div className="layer-panel__content">
         {groupOrder.map((group) => {
           const layers = groupedLayers[group];
-          if (layers.length === 0) return null;
+          if (!layers || layers.length === 0) return null;
           return (
             <GroupToggle
               key={group}
