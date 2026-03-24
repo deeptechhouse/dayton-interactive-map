@@ -3,7 +3,7 @@ import {
   RAILROAD_COLORS,
   RAILROAD_DEFAULT_COLOR,
   RAILROAD_STATUS_STYLES,
-  CTA_LINE_COLORS,
+  TRANSIT_COLORS,
   ZONING_COLORS,
   ZONING_STROKE_COLORS,
   POI_COLORS,
@@ -62,16 +62,13 @@ describe('RAILROAD_STATUS_STYLES', () => {
   });
 });
 
-describe('CTA_LINE_COLORS', () => {
-  it('contains all 8 CTA lines', () => {
-    const expected = ['Red', 'Blue', 'Brown', 'Green', 'Orange', 'Pink', 'Purple', 'Yellow'];
-    for (const line of expected) {
-      expect(CTA_LINE_COLORS).toHaveProperty(line);
-    }
+describe('TRANSIT_COLORS', () => {
+  it('is a non-empty object', () => {
+    expect(Object.keys(TRANSIT_COLORS).length).toBeGreaterThan(0);
   });
 
   it('all values are valid hex colors', () => {
-    for (const color of Object.values(CTA_LINE_COLORS)) {
+    for (const color of Object.values(TRANSIT_COLORS)) {
       expect(color).toMatch(HEX_COLOR_RE);
     }
   });

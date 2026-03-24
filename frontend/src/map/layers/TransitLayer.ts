@@ -1,13 +1,13 @@
 import type maplibregl from 'maplibre-gl';
 import type { LayerConfig } from '../../types/layer';
-import { CTA_LINE_COLORS } from '../../utils/colorSchemes';
+import { TRANSIT_COLORS } from '../../utils/colorSchemes';
 
 const LINES_SOURCE_ID = 'transit-lines-source';
 const STATIONS_SOURCE_ID = 'transit-stations-source';
 
 function lineColorExpression(): unknown {
   const pairs: string[] = [];
-  for (const [line, color] of Object.entries(CTA_LINE_COLORS)) {
+  for (const [line, color] of Object.entries(TRANSIT_COLORS)) {
     pairs.push(line, color);
   }
   return ['match', ['get', 'line_name'], ...pairs, '#888888'];
