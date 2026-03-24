@@ -7,38 +7,116 @@ city:
   bounds: [[-84.35, 39.65], [-84.05, 39.85]]
 
 sources:
-  zoning:
-    # Montgomery County / City of Dayton open data portal
-    url: "https://data-mcohio.opendata.arcgis.com/datasets/zoning-districts.geojson"
-    note: "Montgomery County open data — verify current endpoint at data-mcohio.opendata.arcgis.com"
   buildings:
-    # Microsoft Building Footprints — Ohio state file
-    url: "https://usbuildingdata.blob.core.windows.net/usbuildings-v2/Ohio.geojson.zip"
-    fallback_url: "https://data-mcohio.opendata.arcgis.com/datasets/building-footprints.geojson"
-    note: "Microsoft footprints cover entire state; clip to city bbox during import"
+    # City of Dayton ArcGIS REST — Building Footprints (layer 307)
+    type: arcgis_rest
+    url: "https://maps.daytonohio.gov/gisservices/rest/services/Viewer/MapLayers_Citywide/MapServer/307"
+    fallback_url: "https://minedbuildings.z5.web.core.windows.net/legacy/usbuildings-v2/Ohio.geojson.zip"
+    field_map:
+      address: ""
+      name: ""
+      floors: "NUMSTORIES"
+      height: "BLDGHEIGHT"
+      type: "TYPE"
+    note: "City of Dayton ArcGIS building footprints; fallback is Microsoft US Building Footprints (clip to bbox)"
+
+  zoning:
+    # City of Dayton ArcGIS REST — Zoning Districts (layer 203)
+    type: arcgis_rest
+    url: "https://maps.daytonohio.gov/gisservices/rest/services/Viewer/MapLayers_Citywide/MapServer/203"
+    field_map:
+      zone_code: "DISTRICT"
+      zone_name: "NAME"
+      new_zoning: "NEW_ZONE"
+    note: "City of Dayton zoning districts"
+
+  parcels:
+    # City of Dayton ArcGIS REST — Parcels (layer 9)
+    type: arcgis_rest
+    url: "https://maps.daytonohio.gov/gisservices/rest/services/Viewer/MapLayers_Citywide/MapServer/9"
+    county_url: "https://services6.arcgis.com/EbVsqZ18sv1kVJ3k/ArcGIS/rest/services/Montgomery_County_Parcels/FeatureServer/0"
+    field_map:
+      pin: "TAXPINNO"
+      address_num: "LOC_NBR"
+      address_dir: "LOC_DIR"
+      address_street: "LOC_STREET"
+      address_suffix: "LOC_SUFFIX"
+      acreage: "ACREAGE"
+    note: "City parcels (within limits); county parcels have owner info via Montgomery County Auditor"
+
   transit_lines:
-    # Greater Dayton RTA GTFS feed
-    url: "https://transitfeeds.com/p/greater-dayton-rta/660/latest/download"
-    fallback_url: "https://www.transit.land/feeds/f-dnh-greaterdaytonrta"
-    note: "GTFS zip — extract shapes.txt for route geometries"
+    # Greater Dayton RTA GTFS feed (bus routes)
+    url: "http://proc.greaterdaytonrta.org/gtfs/google_transit.zip"
+    note: "GTFS zip — extract shapes.txt for route geometries; bus-only system (no rail)"
+
   transit_stations:
     # Greater Dayton RTA stops from GTFS
-    url: "https://transitfeeds.com/p/greater-dayton-rta/660/latest/download"
-    note: "Extract stops.txt from GTFS zip for station/stop points"
+    url: "http://proc.greaterdaytonrta.org/gtfs/google_transit.zip"
+    note: "Extract stops.txt from GTFS zip for bus stop points"
+
   waterways:
-    # USGS National Hydrography Dataset — Great Miami River, Stillwater River, Mad River, Wolf Creek
-    url: "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query?where=1%3D1&geometry=-84.35%2C39.65%2C-84.05%2C39.85&geometryType=esriGeometryEnvelope&outFields=*&f=geojson"
-    note: "NHD flowlines clipped to Dayton bbox; includes Great Miami, Stillwater, and Mad rivers"
+    # USGS National Hydrography Dataset — Flowlines clipped to Dayton bbox
+    type: arcgis_rest
+    url: "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6"
+    bbox: [-84.35, 39.65, -84.05, 39.85]
+    note: "NHD flowlines: Great Miami River, Stillwater River, Mad River, Wolf Creek"
+
   parks:
-    # Five Rivers MetroParks and city parks
-    url: "https://data-mcohio.opendata.arcgis.com/datasets/parks.geojson"
-    note: "Montgomery County parks data — verify endpoint at data-mcohio.opendata.arcgis.com"
-  railroads:
-    fra_url: "https://data-usdot.opendata.arcgis.com/datasets/north-american-rail-network-lines.geojson"
+    # OpenStreetMap Overpass API — parks within Dayton bbox
     osm_overpass_bbox: "39.65,-84.35,39.85,-84.05"
+    osm_tags: "leisure=park"
+    note: "Five Rivers MetroParks + city parks via OSM; no official GIS download available"
+
+  railroads:
+    osm_overpass_bbox: "39.65,-84.35,39.85,-84.05"
+    note: "Railroad lines from OpenStreetMap"
+
   pois:
     osm_overpass_bbox: "39.65,-84.35,39.85,-84.05"
-  parcels:
-    note: "Montgomery County Auditor parcel data — requires manual download or ArcGIS REST API from mcrealgis.org"
+    note: "Points of interest from OpenStreetMap Overpass"
+
+  police_districts:
+    # City of Dayton Police Areas — District boundaries (layer 0)
+    type: arcgis_rest
+    url: "https://maps.daytonohio.gov/gisservices/rest/services/Police/PoliceAreas/MapServer/0"
+    field_map:
+      district: "District"
+    note: "Dayton Police Department district boundaries"
+
+  neighborhoods:
+    # City of Dayton Neighborhood boundaries (layer 310)
+    type: arcgis_rest
+    url: "https://maps.daytonohio.gov/gisservices/rest/services/Viewer/MapLayers_Citywide/MapServer/310"
+    note: "Dayton recognized neighborhoods — replaces wards (Dayton uses at-large commission)"
+
   streets:
-    note: "Streets come from basemap tiles; TIGER/Line import is optional"
+    # City of Dayton Centerlines (layer 312)
+    type: arcgis_rest
+    url: "https://maps.daytonohio.gov/gisservices/rest/services/Viewer/MapLayers_Citywide/MapServer/312"
+    field_map:
+      name: "GEONAME"
+    note: "Street centerlines for major street extraction"
+
+  zip_codes:
+    url: "https://www2.census.gov/geo/tiger/TIGER2023/ZCTA520/tl_2023_us_zcta520.zip"
+    filter_prefix: "453"
+    note: "US Census TIGER/Line ZCTA — filter for 453xx Dayton-area zip codes"
+
+interior:
+  enabled: true
+  osm:
+    enabled: true
+    overpass_bbox: [39.65, -84.35, 39.85, -84.05]
+  county:
+    name: "Montgomery County"
+    assessor_api: ""
+  sanborn:
+    enabled: true
+    loc_query: "sanborn dayton ohio"
+    years: [1887, 1890, 1897, 1902, 1905, 1911, 1917, 1923, 1950]
+  venue_scraping:
+    enabled: true
+    categories: ["church", "hotel_event", "theater", "museum", "community_center", "gymnasium", "music_venue", "gallery"]
+  permits:
+    enabled: true
+    socrata_url: ""

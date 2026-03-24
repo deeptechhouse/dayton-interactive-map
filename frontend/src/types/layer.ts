@@ -21,8 +21,7 @@ export type LayerGroup =
   | 'poi'
   | 'historical'
   | 'parks'
-  | 'government'
-  | 'safety';
+  | 'government';
 
 export const LAYER_GROUP_LABELS: Record<LayerGroup, string> = {
   infrastructure: 'Infrastructure',
@@ -31,5 +30,4 @@ export const LAYER_GROUP_LABELS: Record<LayerGroup, string> = {
   historical: 'Historical',
   parks: 'Parks',
   government: 'Government',
-  safety: 'Public Safety',
 };

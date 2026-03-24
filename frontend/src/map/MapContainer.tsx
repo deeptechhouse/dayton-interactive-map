@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { layers as protomapsLayers, namedTheme } from 'protomaps-themes-base';
 import { Protocol } from 'pmtiles';
 
-import { CHICAGO_CENTER, CHICAGO_ZOOM } from '../utils/geoUtils';
+import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../utils/geoUtils';
 import type { LayerConfig, LayerState } from '../types/layer';
 import { getLayerSourceUrl } from './hooks/useMapLayers';
 import { useMapClick } from './hooks/useMapClick';
@@ -21,10 +21,7 @@ import { addMajorStreetsLayer, getMajorStreetsLayerIds } from './layers/MajorStr
 import { addZipCodeLayer, getZipCodeLayerIds } from './layers/ZipCodeLayer';
 import { addPoliceDistrictLayer, getPoliceDistrictLayerIds } from './layers/PoliceDistrictLayer';
 import { addWardLayer, getWardLayerIds } from './layers/WardLayer';
-import { DISTRICT_INFO } from './layers/data/policeDistrictsData';
-import { WARD_INFO } from './layers/data/wardsData';
-import { addGangTerritoryLayer, getGangTerritoryLayerIds } from './layers/GangTerritoryLayer';
-import { GANG_INFO } from './layers/data/gangTerritoryData';
+// Chicago-specific embedded data removed — Dayton uses PostGIS vector tiles
 import { addFederalPropertyLayer, getFederalPropertyLayerIds } from './layers/FederalPropertyLayer';
 import { addRailroadRowLayer, getRailroadRowLayerIds } from './layers/RailroadRowLayer';
 
@@ -52,7 +49,7 @@ const LAYER_REGISTRY: Record<
   zip_codes: { add: addZipCodeLayer, getIds: getZipCodeLayerIds },
   police_districts: { add: addPoliceDistrictLayer, getIds: getPoliceDistrictLayerIds },
   wards: { add: addWardLayer, getIds: getWardLayerIds },
-  gang_territory: { add: addGangTerritoryLayer, getIds: getGangTerritoryLayerIds },
+  // gang_territory removed (Chicago-specific)
   federal_properties: { add: addFederalPropertyLayer, getIds: getFederalPropertyLayerIds },
   railroad_row: { add: addRailroadRowLayer, getIds: getRailroadRowLayerIds },
 };
@@ -98,8 +95,8 @@ export const MapContainer: React.FC<MapContainerProps> = ({ layers, onMapReady, 
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: basemapStyle,
-      center: CHICAGO_CENTER,
-      zoom: CHICAGO_ZOOM,
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
       minZoom: 3,
       maxZoom: 20,
     });
@@ -136,7 +133,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({ layers, onMapReady, 
       if (!registry) continue;
 
       const sourceUrl = getLayerSourceUrl(layer.id);
-      const geojsonLayers = new Set(['sanborn', 'police_districts', 'wards', 'gang_territory', 'federal_properties', 'railroad_row']);
+      const geojsonLayers = new Set(['sanborn', 'federal_properties', 'railroad_row']);
       if (!sourceUrl && !geojsonLayers.has(layer.id)) continue;
 
       // Only add if not already added
@@ -228,8 +225,6 @@ export const MapContainer: React.FC<MapContainerProps> = ({ layers, onMapReady, 
       html = buildPoliceDistrictPopup(props);
     } else if (clickInfo.featureType === 'ward') {
       html = buildWardPopup(props);
-    } else if (clickInfo.featureType === 'gang_territory') {
-      html = buildGangTerritoryPopup(props);
     } else if (clickInfo.featureType === 'federal_property') {
       html = buildFederalPropertyPopup(props);
     } else if (clickInfo.featureType === 'railroad_row') {
@@ -353,8 +348,8 @@ function formatOwnershipType(type: string | null | undefined): string | null {
   const map: Record<string, string> = {
     government_transit: 'Public Transit Agency',
     government_passenger: 'Federal (Amtrak)',
-    city_owned: 'City of Chicago',
-    county_owned: 'Cook County',
+    city_owned: 'City of Dayton',
+    county_owned: 'Montgomery County',
     private_class1: 'Private — Class I Railroad',
     private_terminal: 'Private — Terminal/Switching',
     private_shortline: 'Private — Short Line',
@@ -461,76 +456,30 @@ function buildPOIPopup(p: Record<string, unknown>): string {
 }
 
 function buildPoliceDistrictPopup(p: Record<string, unknown>): string {
-  const distNum = p.dist_num as number | undefined;
-  const stationName = p.name as string | undefined;
+  // Dayton PD: 7 districts, data from PostGIS
+  const district = p.district as string | undefined;
 
-  if (stationName && distNum) {
-    const info = DISTRICT_INFO[distNum];
-    return `<div style="${popupStyles} max-width: 340px; padding: 8px;">
-      <div style="${headerStyle}">\u2605 ${stationName}</div>
-      <div style="margin-bottom: 8px;">
-        <span style="${badgeStyle('#fef3c7', '#92400e')}">Police Station</span>
-      </div>
-      ${row('Address', p.address ?? info?.address)}
-      ${row('Commander', p.commander ?? info?.commander)}
-      ${row('Phone', p.phone ?? info?.phone)}
-      ${row('Non-Emergency', '311')}
-      ${row('Emergency', '911')}
-    </div>`;
-  }
-
-  const info = distNum ? DISTRICT_INFO[distNum] : undefined;
   return `<div style="${popupStyles} max-width: 340px; padding: 8px;">
-    <div style="${headerStyle}">Police District ${distNum ?? '?'}</div>
+    <div style="${headerStyle}">Police District ${district ?? '?'}</div>
     <div style="margin-bottom: 8px;">
-      <span style="${badgeStyle('#dbeafe', '#1e40af')}">CPD District</span>
+      <span style="${badgeStyle('#dbeafe', '#1e40af')}">Dayton PD</span>
     </div>
-    ${info ? row('Station', info.name) : ''}
-    ${info ? row('Address', info.address) : ''}
-    ${info ? row('Commander', info.commander) : ''}
-    ${info ? row('Phone', info.phone) : ''}
-    ${row('Non-Emergency', '311')}
+    ${row('Non-Emergency', '937-333-1311')}
     ${row('Emergency', '911')}
   </div>`;
 }
 
 function buildWardPopup(p: Record<string, unknown>): string {
-  const wardNum = p.ward as number | undefined;
-  const info = wardNum ? WARD_INFO[wardNum] : undefined;
-  const isOffice = Boolean(p.alderman);
-
-  const alderman = (p.alderman as string) ?? info?.alderman ?? '';
-  const title = isOffice ? `Ald. ${alderman}` : `Ward ${wardNum ?? '?'}`;
-  const badgeText = isOffice ? "Alderman's Office" : 'City Ward';
-  const [badgeBg, badgeFg] = isOffice ? ['#ede9fe', '#5b21b6'] as const : ['#e0e7ff', '#3730a3'] as const;
+  // Dayton: displays neighborhood info instead of ward/alderman data
+  const name = (p.name as string) ?? 'Unknown Neighborhood';
 
   return `<div style="${popupStyles} max-width: 340px; padding: 8px;">
-    <div style="${headerStyle}">${title}</div>
+    <div style="${headerStyle}">${name}</div>
     <div style="margin-bottom: 8px;">
-      <span style="${badgeStyle(badgeBg, badgeFg)}">${badgeText}</span>
-      ${wardNum ? `<span style="${badgeStyle('#f0fdf4', '#166534')}">Ward ${wardNum}</span>` : ''}
+      <span style="${badgeStyle('#e0e7ff', '#3730a3')}">Neighborhood</span>
     </div>
-    ${row('Alderman', alderman)}
-    ${row('Ward Office', (p.address as string) ?? info?.address)}
-    ${row('Ward Phone', (p.ward_phone as string) ?? info?.wardPhone)}
-    ${row('City Hall Phone', (p.hall_phone as string) ?? info?.hallPhone)}
-    ${row('City Hall Office', info?.hallOffice ? 'Room ' + info.hallOffice : null)}
-    ${row('Email', info?.email ? '<a href="mailto:' + info.email + '" style="color:#58a6ff">' + info.email + '</a>' : null)}
-    ${row('Staff', info?.staff || null)}
-  </div>`;
-}
-
-function buildGangTerritoryPopup(p: Record<string, unknown>): string {
-  const gangName = (p.gang_name as string) ?? 'Unknown';
-  const info = GANG_INFO[gangName];
-
-  return `<div style="${popupStyles} max-width: 340px; padding: 8px;">
-    <div style="${headerStyle}">${gangName}</div>
-    <div style="margin-bottom: 8px;">
-      ${info?.nation ? `<span style="${badgeStyle(info.nation === 'People' ? '#fef3c7' : '#dbeafe', info.nation === 'People' ? '#92400e' : '#1e40af')}">${info.nation} Nation</span>` : ''}
-    </div>
-    ${row('Alliance', info?.alliance || null)}
-    ${row('Source', 'CPD 2025 Gang Boundaries')}
+    ${row('Police District', p.police_district)}
+    ${row('Police Beat', p.police_beat)}
   </div>`;
 }
 

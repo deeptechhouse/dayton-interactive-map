@@ -1,4 +1,9 @@
-"""Import zoning districts from Chicago Open Data (Socrata GeoJSON API)."""
+"""Import zoning districts from city open data portals.
+
+Supports multiple source types:
+- Socrata GeoJSON API (Chicago): direct download
+- ArcGIS REST MapServer (Dayton): paginated via resultOffset
+"""
 
 import json
 import uuid
@@ -8,10 +13,13 @@ from shapely.geometry import shape, mapping
 from shapely import MultiPolygon, Polygon
 
 from app.data_import.base_importer import BaseImporter
+from app.data_import.arcgis_rest_importer import ArcGISRestImporter
 
 
 # Map zone code prefixes to zone_class categories
+# Covers both Chicago and Dayton conventions
 _ZONE_CLASS_MAP = {
+    # Chicago prefixes
     "M": "manufacturing",
     "PMD": "manufacturing",
     "C": "commercial",
@@ -28,11 +36,30 @@ _ZONE_CLASS_MAP = {
     "POS": "special",
     "T": "transportation",
     "P": "special",
+    # Dayton prefixes (Dayton Zoning Code)
+    "MF": "residential",       # multi-family
+    "SF": "residential",       # single-family
+    "TF": "residential",       # two-family
+    "UR": "residential",       # urban residential
+    "NC": "commercial",        # neighborhood commercial
+    "GC": "commercial",        # general commercial
+    "RC": "commercial",        # regional commercial
+    "OC": "commercial",        # office commercial
+    "LM": "manufacturing",     # light manufacturing
+    "GM": "manufacturing",     # general manufacturing
+    "HM": "manufacturing",     # heavy manufacturing
+    "MU": "mixed",             # mixed use
+    "MX": "mixed",             # mixed use
+    "CBD": "mixed",            # central business district
+    "WR": "mixed",             # waterfront/river
+    "OS": "special",           # open space
+    "IN": "manufacturing",     # industrial
+    "I": "manufacturing",      # industrial
 }
 
 
 def _classify_zone(zone_code: str) -> str:
-    """Map a Chicago zone code to a broad zone_class."""
+    """Map a zone code to a broad zone_class. Handles Chicago and Dayton conventions."""
     if not zone_code:
         return "other"
     code = zone_code.strip().upper()
@@ -54,10 +81,16 @@ def _ensure_multipolygon(geom) -> str | None:
     return json.dumps(mapping(geom))
 
 
-class ZoningImporter(BaseImporter):
+class ZoningImporter(ArcGISRestImporter):
     layer_name = "zoning"
 
     def download(self) -> Path:
+        # Use ArcGIS REST pagination if source type is arcgis_rest
+        source_type = self._config.get("type", "")
+        if source_type == "arcgis_rest":
+            return ArcGISRestImporter.download(self)
+
+        # Fall back to direct GeoJSON download
         cached = self._load_json_cache()
         if cached:
             return self._cache_path()
@@ -86,14 +119,35 @@ class ZoningImporter(BaseImporter):
             if not multi_json:
                 continue
 
-            zone_code = props.get("zone_class", "") or props.get("zone_type", "") or ""
+            # Try multiple field name conventions
+            # Chicago: zone_class, zone_type, zone_class_description
+            # Dayton ArcGIS: DISTRICT, NAME, NEW_ZONE, NEWZONING1
+            zone_code = (
+                props.get("zone_class", "")
+                or props.get("zone_type", "")
+                or props.get("DISTRICT", "")
+                or props.get("NEW_ZONE", "")
+                or props.get("NEWZONING1", "")
+                or ""
+            )
+            zone_name = (
+                props.get("zone_type", "")
+                or props.get("NAME", "")
+                or zone_code
+            )
+            description = (
+                props.get("zone_class_description", "")
+                or props.get("FEATURE", "")
+                or ""
+            )
+
             records.append({
                 "id": str(uuid.uuid4()),
                 "city_id": self._city_id,
                 "zone_code": zone_code,
                 "zone_class": _classify_zone(zone_code),
-                "zone_name": props.get("zone_type", zone_code),
-                "description": props.get("zone_class_description", ""),
+                "zone_name": zone_name,
+                "description": description,
                 "ordinance_ref": props.get("ordinance", ""),
                 "geom_json": multi_json,
             })

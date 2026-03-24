@@ -178,7 +178,7 @@ export const POIBrowsePanel: React.FC<POIBrowsePanelProps> = ({ map }) => {
     }
     setLoading(true);
     const base = apiBaseUrl();
-    fetch(`${base}/api/v1/cities/chicago/pois?category=${selectedCategory}`)
+    fetch(`${base}/api/v1/cities/dayton/pois?category=${selectedCategory}`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {

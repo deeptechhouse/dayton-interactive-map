@@ -16,7 +16,7 @@ function createDefaultLayers(): LayerState[] {
     },
     {
       id: 'transit',
-      name: 'CTA Transit',
+      name: 'GDRTA Transit',
       group: 'infrastructure',
       visible: true,
       opacity: 1,
@@ -93,16 +93,8 @@ function createDefaultLayers(): LayerState[] {
     },
     {
       id: 'wards',
-      name: 'City Wards',
+      name: 'Neighborhoods',
       group: 'government',
-      visible: false,
-      opacity: 1,
-    },
-    // Public Safety
-    {
-      id: 'gang_territory',
-      name: 'Gang Territory (CPD 2025)',
-      group: 'safety',
       visible: false,
       opacity: 1,
     },
@@ -136,9 +128,8 @@ export function getLayerSourceUrl(layerId: string): string {
     zip_codes: martinTileUrl('zip_codes'),
     sanborn: '', // PMTiles URL, configured separately
     parks: martinTileUrl('parcels'),
-    police_districts: '', // GeoJSON embedded in layer data
-    wards: '', // GeoJSON embedded in layer data
-    gang_territory: '', // GeoJSON embedded in layer data
+    police_districts: martinTileUrl('police_districts'), // Dayton PD from PostGIS
+    wards: martinTileUrl('wards'), // Dayton neighborhoods from PostGIS
     federal_properties: '', // GeoJSON embedded in layer data
     railroad_row: '', // GeoJSON embedded in layer data
   };
@@ -187,7 +178,6 @@ export function useMapLayers(): UseMapLayersReturn {
       historical: [],
       parks: [],
       government: [],
-      safety: [],
     };
     for (const layer of layers) {
       groups[layer.group].push(layer);

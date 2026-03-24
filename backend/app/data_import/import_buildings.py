@@ -1,6 +1,8 @@
-"""Import building footprints from Chicago Open Data (Socrata GeoJSON API).
+"""Import building footprints from city open data portals.
 
-Supports pagination via $offset for APIs that cap at 50 000 rows per request.
+Supports multiple source types:
+- Socrata GeoJSON API (Chicago): paginated via $offset
+- ArcGIS REST MapServer (Dayton): paginated via resultOffset
 """
 
 import json
@@ -11,14 +13,21 @@ from shapely.geometry import shape, mapping
 from shapely import Polygon, MultiPolygon
 
 from app.data_import.base_importer import BaseImporter
+from app.data_import.arcgis_rest_importer import ArcGISRestImporter
 
 PAGE_SIZE = 50000
 
 
-class BuildingsImporter(BaseImporter):
+class BuildingsImporter(ArcGISRestImporter):
     layer_name = "buildings"
 
     def download(self) -> Path:
+        # Use ArcGIS REST pagination if source type is arcgis_rest
+        source_type = self._config.get("type", "")
+        if source_type == "arcgis_rest":
+            return super().download()
+
+        # Fall back to Socrata-style pagination
         cached = self._load_json_cache()
         if cached:
             return self._cache_path()
@@ -69,16 +78,37 @@ class BuildingsImporter(BaseImporter):
 
             geom_str = json.dumps(mapping(geom))
 
-            # Try to extract useful fields from Chicago building footprint data
+            # Extract useful fields — try multiple field name conventions
+            # Chicago: bldg_addr, bldg_name, stories, year_built, shape_area
+            # Dayton ArcGIS: NUMSTORIES, BLDGHEIGHT, TYPE, CTYSTRUCT
             address = (
                 props.get("bldg_addr", "")
                 or props.get("address", "")
                 or props.get("f_add1", "")
+                or props.get("ADDRESS", "")
             )
-            name = props.get("bldg_name", "") or props.get("name", "")
-            year_built = _safe_int(props.get("year_built") or props.get("yr_built"))
-            floors = _safe_int(props.get("stories") or props.get("no_stories") or props.get("floors"))
-            sq_ft = _safe_int(props.get("shape_area") or props.get("sqft"))
+            name = (
+                props.get("bldg_name", "")
+                or props.get("name", "")
+                or props.get("NAME", "")
+            )
+            year_built = _safe_int(
+                props.get("year_built")
+                or props.get("yr_built")
+                or props.get("YEAR_BUILT")
+            )
+            floors = _safe_int(
+                props.get("stories")
+                or props.get("no_stories")
+                or props.get("floors")
+                or props.get("NUMSTORIES")
+            )
+            sq_ft = _safe_int(
+                props.get("shape_area")
+                or props.get("sqft")
+                or props.get("Shape__Area")
+                or props.get("SHAPE_Area")
+            )
 
             records.append({
                 "id": str(uuid.uuid4()),

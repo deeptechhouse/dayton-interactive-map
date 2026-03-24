@@ -18,7 +18,9 @@ import yaml
 
 from app.data_import.base_importer import CACHE_DIR
 from app.data_import.import_buildings import BuildingsImporter
+from app.data_import.import_neighborhoods import NeighborhoodsImporter
 from app.data_import.import_parcels import ParcelsImporter
+from app.data_import.import_police_districts import PoliceDistrictsImporter
 from app.data_import.import_pois import POIsImporter
 from app.data_import.import_railroads import RailroadsImporter
 from app.data_import.import_streets import StreetsImporter
@@ -29,7 +31,8 @@ from app.data_import.import_zoning import ZoningImporter
 logger = structlog.get_logger(__name__)
 
 # Default DB URL (same as app config)
-DEFAULT_DB_URL = "postgresql://citymap:citymap@localhost:5433/citymap"
+# Port 9370 = Dayton area code 937 + 0
+DEFAULT_DB_URL = "postgresql://citymap:citymap@localhost:9370/citymap"
 
 # Importers in dependency order
 IMPORTER_ORDER = [
@@ -41,6 +44,8 @@ IMPORTER_ORDER = [
     "waterways",
     "pois",
     "streets",
+    "police_districts",
+    "neighborhoods",
 ]
 
 IMPORTER_CLASSES = {
@@ -52,6 +57,8 @@ IMPORTER_CLASSES = {
     "waterways": WaterwaysImporter,
     "pois": POIsImporter,
     "streets": StreetsImporter,
+    "police_districts": PoliceDistrictsImporter,
+    "neighborhoods": NeighborhoodsImporter,
 }
 
 

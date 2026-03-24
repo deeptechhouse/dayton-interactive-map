@@ -23,7 +23,15 @@ export function apiBaseUrl(): string {
   return import.meta.env.VITE_API_URL || 'http://localhost:8000';
 }
 
-/** Chicago default center and zoom */
+/** Dayton default center and zoom */
+export const DAYTON_CENTER: [number, number] = [-84.1916, 39.7589];
+export const DAYTON_ZOOM = 12;
+
+/** Default map center and zoom (set to primary city) */
+export const DEFAULT_CENTER: [number, number] = DAYTON_CENTER;
+export const DEFAULT_ZOOM = DAYTON_ZOOM;
+
+/** Legacy alias for backward compatibility */
 export const CHICAGO_CENTER: [number, number] = [-87.6298, 41.8781];
 export const CHICAGO_ZOOM = 11;
 
