@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { layers as protomapsLayers, namedTheme } from 'protomaps-themes-base';
 import { Protocol } from 'pmtiles';
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../utils/geoUtils';
@@ -78,21 +77,32 @@ export const MapContainer: React.FC<MapContainerProps> = ({ layers, onMapReady, 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const basemapStyle: maplibregl.StyleSpecification = {
-      version: 8,
-      glyphs: 'https://cdn.protomaps.com/fonts/pbf/{fontstack}/{range}.pbf',
-      sources: {
-        protomaps: {
-          type: 'vector',
-          url: 'pmtiles://https://build.protomaps.com/20260324.pmtiles',
-          attribution:
-            '<a href="https://protomaps.com">Protomaps</a> | <a href="https://openstreetmap.org">OSM</a>',
-        },
-      },
-      layers: protomapsLayers('protomaps', namedTheme('dark')),
-    };
+    const initMap = async () => {
+      if (!containerRef.current) return;
 
-    const map = new maplibregl.Map({
+      // Fetch OpenFreeMap dark style and patch for MapLibre v5 compat
+      const styleUrl = 'https://tiles.openfreemap.org/styles/dark';
+      let basemapStyle: maplibregl.StyleSpecification;
+      try {
+        const resp = await fetch(styleUrl);
+        basemapStyle = await resp.json();
+        // MapLibre v5 requires projection field
+        if (!(basemapStyle as Record<string, unknown>).projection) {
+          (basemapStyle as Record<string, unknown>).projection = { type: 'mercator' };
+        }
+      } catch {
+        // Fallback: minimal dark style if fetch fails
+        basemapStyle = {
+          version: 8,
+          sources: {},
+          layers: [{
+            id: 'background', type: 'background',
+            paint: { 'background-color': '#0d1117' },
+          }],
+        };
+      }
+
+      const map = new maplibregl.Map({
       container: containerRef.current,
       style: basemapStyle,
       center: DEFAULT_CENTER,
@@ -119,13 +129,18 @@ export const MapContainer: React.FC<MapContainerProps> = ({ layers, onMapReady, 
       console.warn('Map error:', e.error?.message);
     });
 
-    mapRef.current = map;
+      mapRef.current = map;
+    };
+
+    initMap();
 
     return () => {
-      map.remove();
-      mapRef.current = null;
-      setMapInstance(null);
-      setMapLoaded(false);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        setMapInstance(null);
+        setMapLoaded(false);
+      }
     };
   }, []);
 
