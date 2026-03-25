@@ -316,17 +316,38 @@ function buildBuildingPopup(p: Record<string, unknown>): string {
   if (p.zoning_code) badges.push(`<span style="${badgeStyle('#dbeafe', '#1e40af')}">${p.zoning_code}</span>`);
   if (p.property_class) badges.push(`<span style="${badgeStyle('#fef3c7', '#92400e')}">${p.property_class}</span>`);
 
-  return `<div style="${popupStyles} max-width: 340px; padding: 8px;">
+  // Parse metadata for parcel enrichment fields
+  let meta: Record<string, unknown> = {};
+  if (p.metadata) {
+    try {
+      meta = typeof p.metadata === 'string' ? JSON.parse(p.metadata as string) : p.metadata as Record<string, unknown>;
+    } catch { /* ignore */ }
+  }
+
+  const fmtDollar = (v: unknown) => v && Number(v) > 0 ? `$${Number(v).toLocaleString()}` : null;
+  const ownerAddr = [meta.owner_addr, meta.owner_ad_2].filter(Boolean).join(', ');
+  const mailingAddr = [meta.mailing_ad, meta.mailing__3].filter(Boolean).join(', ');
+
+  return `<div style="${popupStyles} max-width: 380px; padding: 8px; max-height: 420px; overflow-y: auto;">
     <div style="${headerStyle}">${name}</div>
     ${badges.length > 0 ? `<div style="margin-bottom: 8px;">${badges.join('')}</div>` : ''}
     ${row('Address', p.address)}
-    ${row('Zoning', p.zoning_code ? `${p.zoning_code}${p.zoning_desc ? ' — ' + p.zoning_desc : ''}` : null)}
+    ${row('Owner', p.owner_name)}
+    ${ownerAddr ? row('Owner Address', ownerAddr) : ''}
+    ${mailingAddr && mailingAddr !== ownerAddr ? row('Mailing Address', mailingAddr) : ''}
     ${row('Year Built', p.year_built)}
     ${row('Floors', p.floors)}
     ${row('Square Feet', p.sq_ft ? Number(p.sq_ft).toLocaleString() : null)}
-    ${row('Owner', p.owner_name)}
-    ${row('Owner Type', p.owner_type)}
-    ${row('Property Class', p.property_class)}
+    ${row('Bedrooms', meta.bedrooms)}
+    ${row('Total Rooms', meta.rooms)}
+    ${row('Style', meta.dwelling_style)}
+    ${row('Exterior', meta.exterior)}
+    ${row('Heating', meta.heating)}
+    ${row('Appraised Value', fmtDollar(meta.appraised_value))}
+    ${row('Last Sale', meta.sale_date ? `${meta.sale_date}${meta.sale_price && Number(meta.sale_price) > 0 ? ' — ' + fmtDollar(meta.sale_price) : ''}` : null)}
+    ${row('Zoning', p.zoning_code ? `${p.zoning_code}${p.zoning_desc ? ' — ' + p.zoning_desc : ''}` : null)}
+    ${row('Land Use', p.property_class)}
+    ${row('Zip Code', meta.zip_code)}
     ${row('Parcel PIN', p.parcel_pin)}
     ${buildBusinessesSection(p)}
     <div style="margin-top: 10px; display: flex; gap: 6px;">
