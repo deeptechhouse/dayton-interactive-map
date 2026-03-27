@@ -555,19 +555,35 @@ function buildFederalPropertyPopup(p: Record<string, unknown>): string {
 }
 
 function buildRailroadRowPopup(p: Record<string, unknown>): string {
-  const pin = (p.pin as string) ?? '';
+  const source = (p.source as string) ?? '';
+  const owner = (p.owner as string) ?? (p.operator as string) ?? '';
+  const name = (p.name as string) ?? '';
   const address = (p.address as string) ?? '';
-  const assessorUrl = pin ? 'https://www.cookcountyassessor.com/pin/' + pin : '';
+  const parcelId = (p.parcel_id as string) ?? '';
+  const landUse = (p.land_use as string) ?? '';
+  const status = (p.status as string) ?? '';
+  const isParcel = source === 'parcel';
+  const auditorUrl = parcelId ? 'https://www.mcrealestate.org/propertysearch.aspx?parcelNumber=' + encodeURIComponent(parcelId) : '';
+
+  const typeBadge = isParcel
+    ? `<span style="${badgeStyle('#fef3c7', '#92400e')}">Designated Parcel</span>`
+    : `<span style="${badgeStyle('#dbeafe', '#1e40af')}">ROW Corridor</span>`;
+  const statusBadge = status && status !== 'active'
+    ? `<span style="${badgeStyle('#fecaca', '#991b1b')}">${status}</span>`
+    : '';
 
   return `<div style="${popupStyles} max-width: 340px; padding: 8px;">
     <div style="${headerStyle}">Railroad Right-of-Way</div>
     <div style="margin-bottom: 8px;">
-      <span style="${badgeStyle('#fef3c7', '#92400e')}">Railroad Property</span>
-      <span style="${badgeStyle('#fef9c3', '#713f12')}">Class RR</span>
+      ${typeBadge}
+      ${statusBadge}
     </div>
-    ${row('PIN', pin)}
+    ${row('Owner', owner || null)}
+    ${row('Name', name || null)}
     ${row('Address', address || null)}
-    ${assessorUrl ? row('Assessor', '<a href="' + assessorUrl + '" target="_blank" style="color:#58a6ff">View on Cook County Assessor</a>') : ''}
+    ${row('Parcel ID', parcelId || null)}
+    ${row('Land Use', landUse || null)}
+    ${auditorUrl ? row('Auditor', '<a href="' + auditorUrl + '" target="_blank" style="color:#58a6ff">Montgomery County Real Estate</a>') : ''}
     <div style="margin-top: 6px; font-size: 11px; color: #8b949e;">
       Toggle the Railroads layer to see line ownership info.
     </div>

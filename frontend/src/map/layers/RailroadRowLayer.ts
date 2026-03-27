@@ -43,15 +43,21 @@ export function addRailroadRowLayer(map: maplibregl.Map, config: LayerConfig): v
     },
   } as maplibregl.AddLayerObject);
 
-  // PIN labels at high zoom
+  // Labels at high zoom — show owner for parcels, name/operator for buffered corridors
   map.addLayer({
     id: `${config.id}-label`,
     type: 'symbol',
     source: SOURCE_ID,
-    minzoom: 17,
+    minzoom: 15,
     layout: {
       visibility: config.visible ? 'visible' : 'none',
-      'text-field': ['get', 'pin'],
+      'text-field': [
+        'coalesce',
+        ['get', 'owner'],
+        ['get', 'name'],
+        ['get', 'operator'],
+        '',
+      ],
       'text-size': 9,
       'text-font': ['Noto Sans Regular'],
       'text-anchor': 'center',
